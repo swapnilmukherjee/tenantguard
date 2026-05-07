@@ -10,9 +10,9 @@ import {
   LockKeyhole,
   LogOut,
   Settings,
-  Shield,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import { ApiConsole } from "@/components/api-console";
 import { getAccessTokenPermissions, getSessionSafely } from "@/lib/auth0";
 import {
@@ -82,9 +82,13 @@ export default async function Home() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-600 text-white">
-              <Shield className="h-5 w-5" />
-            </div>
+            <Image
+              src="/tenant-guard-mark.svg"
+              alt="TenantGuard mark"
+              width={40}
+              height={40}
+              priority
+            />
             <div>
               <p className="text-lg font-semibold">TenantGuard</p>
               <p className="text-sm text-slate-500">
@@ -448,10 +452,14 @@ function UnauthenticatedHome() {
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-5 py-6">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500">
-              <Shield className="h-5 w-5" />
-            </div>
-            <span className="text-lg font-semibold">TenantGuard</span>
+            <Image
+              src="/tenant-guard-logo.svg"
+              alt="TenantGuard"
+              width={210}
+              height={60}
+              priority
+              className="h-12 w-auto"
+            />
           </div>
           <a
             href="/auth/login"
