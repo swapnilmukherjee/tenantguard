@@ -34,7 +34,7 @@ Paste that value into `AUTH0_SECRET`.
 1. Go to **Applications > APIs**.
 2. Select **Create API**.
 3. Name it `TenantGuard API`.
-4. Set Identifier to `https://api.tenantguard.local`.
+4. Set Identifier to `https://api.tenantguard.dev`.
 5. Use signing algorithm `RS256`.
 6. Open the API's **Permissions** tab.
 7. Add these permissions:
@@ -51,7 +51,7 @@ Paste that value into `AUTH0_SECRET`.
 Set this in `.env.local`:
 
 ```bash
-AUTH0_AUDIENCE=https://api.tenantguard.local
+AUTH0_AUDIENCE=https://api.tenantguard.dev
 AUTH0_SCOPE="openid profile email read:dashboard read:audit_logs manage:users manage:settings read:billing"
 ```
 

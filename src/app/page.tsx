@@ -14,7 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { ApiConsole } from "@/components/api-console";
-import { getSessionSafely } from "@/lib/auth0";
+import { getAccessTokenPermissions, getSessionSafely } from "@/lib/auth0";
 import {
   auditEvents,
   claimNamespace,
@@ -65,8 +65,9 @@ const featureCards: {
 export default async function Home() {
   const session = await getSessionSafely();
   const user = session?.user as Record<string, unknown> | undefined;
-  const permissions = getUserPermissions(user);
-  const userRoles = getUserRoles(user);
+  const accessTokenPermissions = await getAccessTokenPermissions();
+  const permissions = getUserPermissions(user, accessTokenPermissions);
+  const userRoles = getUserRoles(user, permissions);
   const tenant = getTenant(user);
 
   if (!session) {

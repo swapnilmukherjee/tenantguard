@@ -1,4 +1,6 @@
 import { Auth0Client } from "@auth0/nextjs-auth0/server";
+import { decodeJwt } from "jose";
+import { permissionLabels, type Permission } from "@/lib/iam";
 
 export function isAuth0Configured() {
   return Boolean(
@@ -25,4 +27,26 @@ export async function getSessionSafely() {
   }
 
   return auth0.getSession();
+}
+
+export async function getAccessTokenPermissions() {
+  if (!isAuth0Configured()) {
+    return [] satisfies Permission[];
+  }
+
+  try {
+    const { token } = await auth0.getAccessToken();
+    const payload = decodeJwt(token);
+    const permissions = payload.permissions;
+
+    if (!Array.isArray(permissions)) {
+      return [] satisfies Permission[];
+    }
+
+    return permissions.filter((permission): permission is Permission =>
+      Object.hasOwn(permissionLabels, String(permission)),
+    );
+  } catch {
+    return [] satisfies Permission[];
+  }
 }

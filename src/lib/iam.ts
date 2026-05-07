@@ -169,7 +169,14 @@ export const auditEvents = [
   },
 ];
 
-export function getUserPermissions(user?: Record<string, unknown>): Permission[] {
+export function getUserPermissions(
+  user?: Record<string, unknown>,
+  accessTokenPermissions: Permission[] = [],
+): Permission[] {
+  if (accessTokenPermissions.length > 0) {
+    return accessTokenPermissions;
+  }
+
   const fromToken = user?.permissions;
   if (Array.isArray(fromToken)) {
     return fromToken.filter((permission): permission is Permission =>
@@ -187,7 +194,10 @@ export function getUserPermissions(user?: Record<string, unknown>): Permission[]
   return roles.Viewer;
 }
 
-export function getUserRoles(user?: Record<string, unknown>): RoleName[] {
+export function getUserRoles(
+  user?: Record<string, unknown>,
+  permissions: Permission[] = [],
+): RoleName[] {
   const namespacedRoles = user?.[`${claimNamespace}/roles`];
   if (Array.isArray(namespacedRoles)) {
     const validRoles = namespacedRoles.filter((role): role is RoleName =>
@@ -197,6 +207,20 @@ export function getUserRoles(user?: Record<string, unknown>): RoleName[] {
     if (validRoles.length > 0) {
       return validRoles;
     }
+  }
+
+  const inferredRoles = Object.entries(roles)
+    .filter(([, rolePermissions]) =>
+      rolePermissions.every((permission) => permissions.includes(permission)),
+    )
+    .map(([role]) => role as RoleName);
+
+  if (inferredRoles.includes("Tenant Admin")) {
+    return ["Tenant Admin"];
+  }
+
+  if (inferredRoles.length > 0) {
+    return inferredRoles;
   }
 
   return ["Viewer"];
