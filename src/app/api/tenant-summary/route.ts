@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionSafely } from "@/lib/auth0";
+import { getAccessTokenPermissions, getSessionSafely } from "@/lib/auth0";
 import {
   decideAccess,
   getTenant,
@@ -15,7 +15,7 @@ export async function GET() {
   }
 
   const user = session.user as Record<string, unknown>;
-  const permissions = getUserPermissions(user);
+  const permissions = getUserPermissions(user, await getAccessTokenPermissions());
   const decision = decideAccess(permissions, "read:dashboard");
 
   if (!decision.allowed) {

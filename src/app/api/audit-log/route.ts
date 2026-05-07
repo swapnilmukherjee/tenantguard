@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSessionSafely } from "@/lib/auth0";
+import { getAccessTokenPermissions, getSessionSafely } from "@/lib/auth0";
 import { auditEvents, decideAccess, getUserPermissions } from "@/lib/iam";
 
 export async function GET() {
@@ -9,7 +9,10 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const permissions = getUserPermissions(session.user as Record<string, unknown>);
+  const permissions = getUserPermissions(
+    session.user as Record<string, unknown>,
+    await getAccessTokenPermissions(),
+  );
   const decision = decideAccess(permissions, "read:audit_logs");
 
   if (!decision.allowed) {
