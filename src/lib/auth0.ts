@@ -1,6 +1,6 @@
 import { Auth0Client } from "@auth0/nextjs-auth0/server";
 import { decodeJwt } from "jose";
-import { permissionLabels, type Permission } from "@/lib/iam";
+import { claimNamespace, permissionLabels, type Permission } from "@/lib/iam";
 
 export function isAuth0Configured() {
   return Boolean(
@@ -18,6 +18,24 @@ export const auth0 = new Auth0Client({
     scope:
       process.env.AUTH0_SCOPE ??
       "openid profile email read:dashboard read:audit_logs manage:users manage:settings read:billing",
+  },
+  beforeSessionSaved: async (session, idToken) => {
+    if (!idToken) {
+      return session;
+    }
+
+    const claims = decodeJwt(idToken);
+    const namespacedClaims = Object.fromEntries(
+      Object.entries(claims).filter(([key]) => key.startsWith(claimNamespace)),
+    );
+
+    return {
+      ...session,
+      user: {
+        ...session.user,
+        ...namespacedClaims,
+      },
+    };
   },
 });
 

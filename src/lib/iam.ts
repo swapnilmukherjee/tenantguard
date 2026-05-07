@@ -26,6 +26,13 @@ export type AccessDecision = {
   reason: string;
 };
 
+export type TenantGuardClaims = {
+  tenantPlan: string;
+  riskTier: string;
+  demoRole: string;
+  authContext: string;
+};
+
 export type DemoAccount = {
   email: string;
   role: RoleName;
@@ -131,7 +138,23 @@ export function getTenant(user?: Record<string, unknown>): Tenant {
     tenants.find((candidate) => candidate.id === orgId) ??
     tenants.find((candidate) => candidate.name === orgName);
 
-  return tenant ?? tenants[0];
+  const fallback = tenant ?? tenants[0];
+  const tenantPlan = user?.[`${claimNamespace}/tenant_plan`];
+  const riskTier = user?.[`${claimNamespace}/risk_tier`];
+
+  return {
+    ...fallback,
+    plan:
+      tenantPlan === "Starter" ||
+      tenantPlan === "Business" ||
+      tenantPlan === "Enterprise"
+        ? tenantPlan
+        : fallback.plan,
+    riskTier:
+      riskTier === "Low" || riskTier === "Medium" || riskTier === "High"
+        ? riskTier
+        : fallback.riskTier,
+  };
 }
 
 export function decideAccess(
@@ -275,5 +298,16 @@ export function buildBillingSummary(
       "RBAC permissions in access tokens",
       "Vercel preview and production deployments",
     ],
+  };
+}
+
+export function getTenantGuardClaims(
+  user?: Record<string, unknown>,
+): TenantGuardClaims {
+  return {
+    tenantPlan: String(user?.[`${claimNamespace}/tenant_plan`] ?? "Not set"),
+    riskTier: String(user?.[`${claimNamespace}/risk_tier`] ?? "Not set"),
+    demoRole: String(user?.[`${claimNamespace}/demo_role`] ?? "Not set"),
+    authContext: String(user?.[`${claimNamespace}/auth_context`] ?? "Not set"),
   };
 }
