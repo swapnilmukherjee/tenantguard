@@ -22,6 +22,7 @@ import {
   claimNamespace,
   decideAccess,
   getTenant,
+  getTenantGuardClaims,
   getUserPermissions,
   getUserRoles,
   permissionLabels,
@@ -72,6 +73,7 @@ export default async function Home() {
   const tenantMetrics = buildTenantMetrics(permissions, userRoles);
   const demoAccounts = buildDemoAccounts(user, userRoles);
   const auditEvents = buildAuthorizationEvents(user, permissions);
+  const tenantGuardClaims = getTenantGuardClaims(user);
 
   if (!session) {
     return <UnauthenticatedHome />;
@@ -426,17 +428,34 @@ export default async function Home() {
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
               Token Inspector
             </p>
-            <h2 className="mt-2 text-2xl font-semibold">Session claim map</h2>
+            <h2 className="mt-2 text-2xl font-semibold">Token claim map</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              This panel intentionally displays only application-safe session
-              claims. Secrets and raw tokens stay server-side.
+              This panel separates identity/session claims from access-token API
+              permissions. Secrets and raw tokens stay server-side.
             </p>
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Identity Session
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
               <Claim label="Subject" value={String(user?.sub ?? "Not set")} />
               <Claim label="Email" value={String(user?.email ?? "Not set")} />
               <Claim label="Auth0 org" value={String(user?.org_id ?? tenant.id)} />
               <Claim label="Tenant plan" value={tenant.plan} />
               <Claim label="Claim namespace" value={claimNamespace} />
+            </div>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              TenantGuard Custom Claims
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              <Claim label="Tenant plan" value={tenantGuardClaims.tenantPlan} />
+              <Claim label="Risk tier" value={tenantGuardClaims.riskTier} />
+              <Claim label="Demo role" value={tenantGuardClaims.demoRole} />
+              <Claim label="Auth context" value={tenantGuardClaims.authContext} />
+            </div>
+            <p className="mt-5 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500">
+              Access Token Authorization
+            </p>
+            <div className="mt-3 grid gap-3 md:grid-cols-2">
               <Claim label="Permissions" value={permissions.join(", ")} />
             </div>
           </section>
@@ -448,7 +467,7 @@ export default async function Home() {
 
 function UnauthenticatedHome() {
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
+    <main className="min-h-screen bg-slate-950 bg-[url('/tenant-guard-login-bg.svg')] bg-cover bg-center bg-no-repeat text-white">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-5 py-6">
         <header className="flex items-center justify-between">
           <div className="flex items-center gap-3">
