@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { getAccessTokenPermissions, getSessionSafely } from "@/lib/auth0";
 import {
   decideAccess,
+  buildTenantMetrics,
   getTenant,
   getUserPermissions,
-  tenantMetrics,
+  getUserRoles,
 } from "@/lib/iam";
 
 export async function GET() {
@@ -16,6 +17,7 @@ export async function GET() {
 
   const user = session.user as Record<string, unknown>;
   const permissions = getUserPermissions(user, await getAccessTokenPermissions());
+  const userRoles = getUserRoles(user, permissions);
   const decision = decideAccess(permissions, "read:dashboard");
 
   if (!decision.allowed) {
@@ -24,7 +26,7 @@ export async function GET() {
 
   return NextResponse.json({
     tenant: getTenant(user),
-    metrics: tenantMetrics,
+    metrics: buildTenantMetrics(permissions, userRoles),
     decision,
   });
 }
