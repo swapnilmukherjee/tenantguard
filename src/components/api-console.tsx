@@ -25,6 +25,11 @@ const checks = [
     route: "/api/audit-log",
     permission: "read:audit_logs",
   },
+  {
+    label: "Billing summary",
+    route: "/api/billing",
+    permission: "read:billing",
+  },
 ];
 
 export function ApiConsole() {
@@ -54,7 +59,7 @@ export function ApiConsole() {
         </h2>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-4">
         {checks.map((check) => (
           <button
             key={check.route}

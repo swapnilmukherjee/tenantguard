@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getAccessTokenPermissions, getSessionSafely } from "@/lib/auth0";
 import {
-  buildAuthorizationEvents,
+  buildBillingSummary,
   decideAccess,
+  getTenant,
   getUserPermissions,
 } from "@/lib/iam";
 
@@ -15,14 +16,14 @@ export async function GET() {
 
   const user = session.user as Record<string, unknown>;
   const permissions = getUserPermissions(user, await getAccessTokenPermissions());
-  const decision = decideAccess(permissions, "read:audit_logs");
+  const decision = decideAccess(permissions, "read:billing");
 
   if (!decision.allowed) {
     return NextResponse.json({ decision }, { status: 403 });
   }
 
   return NextResponse.json({
-    events: buildAuthorizationEvents(user, permissions),
+    billing: buildBillingSummary(user, getTenant(user)),
     decision,
   });
 }

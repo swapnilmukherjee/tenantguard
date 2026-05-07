@@ -26,6 +26,13 @@ export type AccessDecision = {
   reason: string;
 };
 
+export type DemoAccount = {
+  email: string;
+  role: RoleName;
+  status: string;
+  permissions: Permission[];
+};
+
 export const claimNamespace = "https://tenantguard.dev/claims";
 
 export const permissionLabels: Record<Permission, string> = {
@@ -52,120 +59,11 @@ export const roles: Record<RoleName, Permission[]> = {
 export const tenants: Tenant[] = [
   {
     id: "org_acme",
-    name: "Acme Health",
-    slug: "acme-health",
+    name: "TenantGuard Demo Org",
+    slug: "tenantguard-demo",
     plan: "Enterprise",
     riskTier: "Medium",
     region: "US-East",
-  },
-  {
-    id: "org_globex",
-    name: "Globex Retail",
-    slug: "globex-retail",
-    plan: "Business",
-    riskTier: "Low",
-    region: "US-West",
-  },
-  {
-    id: "org_initech",
-    name: "Initech Finance",
-    slug: "initech-finance",
-    plan: "Starter",
-    riskTier: "High",
-    region: "US-East",
-  },
-];
-
-export const tenantMetrics = [
-  {
-    label: "Active sessions",
-    value: "1,284",
-    delta: "+8.6%",
-    tone: "positive",
-  },
-  {
-    label: "Denied API calls",
-    value: "37",
-    delta: "-12.4%",
-    tone: "positive",
-  },
-  {
-    label: "MFA enrollment",
-    value: "94%",
-    delta: "+2.1%",
-    tone: "positive",
-  },
-  {
-    label: "Risk reviews",
-    value: "6",
-    delta: "+3 open",
-    tone: "attention",
-  },
-];
-
-export const members = [
-  {
-    name: "Maya Chen",
-    email: "maya.chen@example.com",
-    role: "Tenant Admin" as RoleName,
-    status: "Active",
-    lastLogin: "Today, 9:14 AM",
-  },
-  {
-    name: "Noah Reed",
-    email: "noah.reed@example.com",
-    role: "Security Analyst" as RoleName,
-    status: "Active",
-    lastLogin: "Yesterday, 4:32 PM",
-  },
-  {
-    name: "Priya Shah",
-    email: "priya.shah@example.com",
-    role: "Billing Manager" as RoleName,
-    status: "Pending MFA",
-    lastLogin: "Apr 29, 2026",
-  },
-  {
-    name: "Jon Bell",
-    email: "jon.bell@example.com",
-    role: "Viewer" as RoleName,
-    status: "Active",
-    lastLogin: "Apr 24, 2026",
-  },
-];
-
-export const auditEvents = [
-  {
-    action: "Member role changed",
-    actor: "maya.chen@example.com",
-    target: "noah.reed@example.com",
-    decision: "Allowed",
-    policy: "manage:users",
-    time: "9:18 AM",
-  },
-  {
-    action: "Billing page opened",
-    actor: "priya.shah@example.com",
-    target: "Globex Retail",
-    decision: "Allowed",
-    policy: "read:billing",
-    time: "8:54 AM",
-  },
-  {
-    action: "Security logs requested",
-    actor: "jon.bell@example.com",
-    target: "Acme Health",
-    decision: "Denied",
-    policy: "read:audit_logs",
-    time: "Yesterday",
-  },
-  {
-    action: "Tenant setting updated",
-    actor: "maya.chen@example.com",
-    target: "MFA required",
-    decision: "Allowed",
-    policy: "manage:settings",
-    time: "Yesterday",
   },
 ];
 
@@ -248,5 +146,134 @@ export function decideAccess(
     reason: allowed
       ? `Granted by a role containing ${permission}.`
       : `Denied because the current token does not include ${permission}.`,
+  };
+}
+
+export function getUserEmail(user?: Record<string, unknown>) {
+  return String(user?.email ?? user?.name ?? "authenticated-user");
+}
+
+export function buildTenantMetrics(
+  permissions: Permission[],
+  userRoles: RoleName[],
+) {
+  const protectedRoutes: Permission[] = [
+    "read:dashboard",
+    "manage:users",
+    "read:audit_logs",
+    "read:billing",
+  ];
+  const deniedRoutes = protectedRoutes.filter(
+    (permission) => !permissions.includes(permission),
+  ).length;
+
+  return [
+    {
+      label: "Authenticated principal",
+      value: "1",
+      detail: "Current Auth0 session",
+      tone: "positive",
+    },
+    {
+      label: "Effective roles",
+      value: String(userRoles.length),
+      detail: userRoles.join(", "),
+      tone: "positive",
+    },
+    {
+      label: "Granted permissions",
+      value: `${permissions.length}/${Object.keys(permissionLabels).length}`,
+      detail: "From Auth0 access token",
+      tone: "positive",
+    },
+    {
+      label: "Denied demo routes",
+      value: String(deniedRoutes),
+      detail: "Expected for limited roles",
+      tone: deniedRoutes === 0 ? "positive" : "attention",
+    },
+  ];
+}
+
+export function buildDemoAccounts(
+  user: Record<string, unknown> | undefined,
+  currentRoles: RoleName[],
+): DemoAccount[] {
+  const email = getUserEmail(user);
+  const [localPart, domain = "example.com"] = email.split("@");
+  const baseLocalPart = localPart.includes("+")
+    ? localPart.split("+")[0]
+    : localPart;
+  const roleTags: Record<RoleName, string> = {
+    "Tenant Admin": "admin",
+    "Security Analyst": "security",
+    "Billing Manager": "billing",
+    Viewer: "viewer",
+  };
+
+  return (Object.keys(roles) as RoleName[]).map((role) => ({
+    email: `${baseLocalPart}+${roleTags[role]}@${domain}`,
+    role,
+    status: currentRoles.includes(role)
+      ? "Current session"
+      : "Configured test user",
+    permissions: roles[role],
+  }));
+}
+
+export function buildAuthorizationEvents(
+  user: Record<string, unknown> | undefined,
+  permissions: Permission[],
+) {
+  const actor = getUserEmail(user);
+  const checks: { action: string; target: string; permission: Permission }[] = [
+    {
+      action: "Tenant summary requested",
+      target: "/api/tenant-summary",
+      permission: "read:dashboard",
+    },
+    {
+      action: "Member directory requested",
+      target: "/api/admin/users",
+      permission: "manage:users",
+    },
+    {
+      action: "Audit log requested",
+      target: "/api/audit-log",
+      permission: "read:audit_logs",
+    },
+    {
+      action: "Billing summary requested",
+      target: "/api/billing",
+      permission: "read:billing",
+    },
+  ];
+
+  return checks.map((check) => {
+    const decision = decideAccess(permissions, check.permission);
+
+    return {
+      ...check,
+      actor,
+      decision: decision.allowed ? "Allowed" : "Denied",
+      reason: decision.reason,
+    };
+  });
+}
+
+export function buildBillingSummary(
+  user: Record<string, unknown> | undefined,
+  tenant: Tenant,
+) {
+  return {
+    tenant: tenant.name,
+    plan: tenant.plan,
+    billingContact: getUserEmail(user),
+    entitlements: [
+      "Universal Login",
+      "Auth0 API Authorization",
+      "RBAC permissions in access tokens",
+      "Vercel preview and production deployments",
+    ],
   };
 }

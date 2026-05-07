@@ -16,16 +16,16 @@ import {
 import { ApiConsole } from "@/components/api-console";
 import { getAccessTokenPermissions, getSessionSafely } from "@/lib/auth0";
 import {
-  auditEvents,
+  buildAuthorizationEvents,
+  buildDemoAccounts,
+  buildTenantMetrics,
   claimNamespace,
   decideAccess,
   getTenant,
   getUserPermissions,
   getUserRoles,
-  members,
   permissionLabels,
   roles,
-  tenantMetrics,
   tenants,
   type Permission,
 } from "@/lib/iam";
@@ -69,6 +69,9 @@ export default async function Home() {
   const permissions = getUserPermissions(user, accessTokenPermissions);
   const userRoles = getUserRoles(user, permissions);
   const tenant = getTenant(user);
+  const tenantMetrics = buildTenantMetrics(permissions, userRoles);
+  const demoAccounts = buildDemoAccounts(user, userRoles);
+  const auditEvents = buildAuthorizationEvents(user, permissions);
 
   if (!session) {
     return <UnauthenticatedHome />;
@@ -214,11 +217,12 @@ export default async function Home() {
                       <div className="flex items-center justify-between gap-3">
                         <p className="font-medium">{item.name}</p>
                         <span className="rounded-full bg-white/10 px-2 py-1 text-xs">
-                          {item.plan}
+                          Fallback tenant
                         </span>
                       </div>
                       <p className="mt-1 text-sm text-slate-300">
-                        {item.region} · {item.riskTier} risk
+                        Real Auth0 Organization claims will replace this when
+                        Organizations are enabled.
                       </p>
                     </div>
                   ))}
@@ -243,7 +247,7 @@ export default async function Home() {
                         : "text-sm font-medium text-amber-700"
                     }
                   >
-                    {metric.delta}
+                    {metric.detail}
                   </span>
                 </div>
               </div>
@@ -291,41 +295,46 @@ export default async function Home() {
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                    Members
+                    Auth0 Test Users
                   </p>
                   <h2 className="mt-2 text-2xl font-semibold">
-                    Tenant user access
+                    Role coverage
                   </h2>
                 </div>
                 <Settings className="h-5 w-5 text-slate-400" />
               </div>
+              <p className="mt-3 text-sm leading-6 text-slate-600">
+                These accounts are the demo users configured in Auth0 for
+                exercising each role. A production directory view would call the
+                Auth0 Management API or your user store.
+              </p>
               <div className="mt-5 overflow-x-auto">
                 <table className="w-full min-w-[620px] text-left text-sm">
                   <thead className="border-b border-slate-200 text-xs uppercase tracking-[0.16em] text-slate-500">
                     <tr>
-                      <th className="pb-3 font-semibold">User</th>
+                      <th className="pb-3 font-semibold">Test account</th>
                       <th className="pb-3 font-semibold">Role</th>
                       <th className="pb-3 font-semibold">Status</th>
-                      <th className="pb-3 font-semibold">Last login</th>
+                      <th className="pb-3 font-semibold">Permissions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {members.map((member) => (
-                      <tr key={member.email}>
+                    {demoAccounts.map((account) => (
+                      <tr key={account.role}>
                         <td className="py-3">
                           <p className="font-medium text-slate-950">
-                            {member.name}
+                            {account.email}
                           </p>
-                          <p className="text-slate-500">{member.email}</p>
+                          <p className="text-slate-500">Auth0 database user</p>
                         </td>
-                        <td className="py-3 text-slate-700">{member.role}</td>
+                        <td className="py-3 text-slate-700">{account.role}</td>
                         <td className="py-3">
                           <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                            {member.status}
+                            {account.status}
                           </span>
                         </td>
                         <td className="py-3 text-slate-500">
-                          {member.lastLogin}
+                          {account.permissions.length}
                         </td>
                       </tr>
                     ))}
@@ -373,13 +382,16 @@ export default async function Home() {
             <div className="mt-5 grid gap-3">
               {auditEvents.map((event) => (
                 <div
-                  key={`${event.action}-${event.time}`}
+                  key={`${event.action}-${event.permission}`}
                   className="grid gap-3 rounded-lg border border-slate-200 p-4 md:grid-cols-[1fr_130px_120px]"
                 >
                   <div>
                     <p className="font-medium">{event.action}</p>
                     <p className="mt-1 text-sm text-slate-500">
                       {event.actor} → {event.target}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {event.reason}
                     </p>
                   </div>
                   <span
@@ -392,7 +404,7 @@ export default async function Home() {
                     {event.decision}
                   </span>
                   <p className="text-sm text-slate-500 md:text-right">
-                    {event.time}
+                    {event.permission}
                   </p>
                 </div>
               ))}
