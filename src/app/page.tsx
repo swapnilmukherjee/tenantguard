@@ -13,8 +13,8 @@ import {
   Shield,
   Users,
 } from "lucide-react";
-import { auth0 } from "@/lib/auth0";
 import { ApiConsole } from "@/components/api-console";
+import { getSessionSafely } from "@/lib/auth0";
 import {
   auditEvents,
   claimNamespace,
@@ -63,7 +63,7 @@ const featureCards: {
 ];
 
 export default async function Home() {
-  const session = await auth0.getSession();
+  const session = await getSessionSafely();
   const user = session?.user as Record<string, unknown> | undefined;
   const permissions = getUserPermissions(user);
   const userRoles = getUserRoles(user);

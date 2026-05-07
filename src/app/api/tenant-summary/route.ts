@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth0 } from "@/lib/auth0";
+import { getSessionSafely } from "@/lib/auth0";
 import {
   decideAccess,
   getTenant,
@@ -8,7 +8,7 @@ import {
 } from "@/lib/iam";
 
 export async function GET() {
-  const session = await auth0.getSession();
+  const session = await getSessionSafely();
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
